@@ -23,8 +23,9 @@ def get_displacements(xs, ys):
 
     return displacement_vectors
 
+
 def compute_hidden_features(input_features):
-    hidden_features = np.cos(input_features) + 2*np.cos(input_features*3) + input_features
+    hidden_features = np.cos(input_features) + 2 * np.cos(input_features * 3) + input_features
     return hidden_features
 
 
@@ -79,20 +80,21 @@ def translate_base_data(x, y, angles, input_features, translation_x, translation
 
 def make_one_graph(num_points=120, rot=None, translation=None):
     assert not (rot and translation)  # TODO hack - need to make these affine transformations somehow?
-    x, y, theta,input_features= get_base_data(num_points, cov=0.5)
+    x, y, theta, input_features = get_base_data(num_points, cov=0.5)
 
     if rot:
-        x, y, theta,input_features= rotate_base_data(x, y, theta, input_features, rot)
+        x, y, theta, input_features = rotate_base_data(x, y, theta, input_features, rot)
     if translation:
-        x, y, theta,input_features= translate_base_data(x, y, theta, input_features,rot)
+        x, y, theta, input_features = translate_base_data(x, y, theta, input_features, rot)
 
     output_forces = compute_targets_from_base_data(x, y, theta, input_features)
 
-    data = {'x': x, 'y': y, 'theta': theta, 'h':input_features,'output_forces': output_forces}
+    data = {'x': x, 'y': y, 'theta': theta, 'h': input_features, 'output_forces': output_forces}
     df = pd.DataFrame(data=data)
     df = df.reset_index().rename(columns={'index': 'vertex_id'})
 
     return df
+
 
 def make_dataset(num_graphs, num_points=500):
     frames = []
