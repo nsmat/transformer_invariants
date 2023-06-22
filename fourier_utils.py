@@ -31,11 +31,11 @@ class Complex:
         return cls(r, theta)
 
 
-def fourier_transform_point_function(z: Complex, precision):
+def fourier_transform_point_function(r: float, theta: float, precision: int = 10):
     """Analytically obtain the fourier transform of a dirac function on S1 """
     indexes = np.arange(-precision, precision + 1)
     c = [
-        z.r*np.exp(-1j*k*z.theta) for k in indexes # cast to euc form so python can do operations
+        r*np.exp(-1j*k*theta) for k in indexes # cast to euc form so python can do operations
     ]
     scaler = 1/(2*np.pi)
     c = np.array(c) * scaler

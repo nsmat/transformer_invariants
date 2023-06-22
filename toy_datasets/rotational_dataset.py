@@ -10,9 +10,9 @@ def get_base_data(num_points, cov=0.5):
     )
     x, y = locations[:, 0], locations[:, 1]
     angles = np.random.uniform(0, np.pi * 2, num_points)
-    hidden_features = np.random.normal(0, 1, size=num_points)
+    input_features = np.random.normal(0, 1, size=num_points)
 
-    return x, y, angles, hidden_features
+    return x, y, angles, input_features
 
 
 def get_displacements(xs, ys):
@@ -22,6 +22,10 @@ def get_displacements(xs, ys):
     displacement_vectors = np.dstack((x_displacement, y_displacement))
 
     return displacement_vectors
+
+def compute_hidden_features(input_features):
+    hidden_features = np.cos(input_features) + 2*np.cos(input_features*3) + input_features
+    return hidden_features
 
 
 def thetas_to_unit_vectors(thetas):
@@ -47,15 +51,17 @@ def compute_targets(hidden, angular_components):
     return angular_components @ hidden
 
 
-def compute_targets_from_base_data(x, y, angles, hidden_features):
+def compute_targets_from_base_data(x, y, angles, input_features):
     displacement = get_displacements(x, y)
     alpha = compute_angular_components(angles, displacement)
+
+    hidden_features = compute_hidden_features(input_features)
     output_forces = compute_targets(hidden_features, angular_components=alpha)
 
     return output_forces
 
 
-def rotate_base_data(x, y, angles, hidden_features, r_theta):
+def rotate_base_data(x, y, angles, input_features, r_theta):
     loc_matrix = np.row_stack((x, y))
     c, s = np.cos(r_theta), np.sin(r_theta)
     rotation_matrix = np.array([[c, s], [-s, c]])  # anticlockwise rotation
@@ -63,26 +69,26 @@ def rotate_base_data(x, y, angles, hidden_features, r_theta):
     out_x, out_y = out_loc[0, :], out_loc[1, :]
 
     out_angles = angles + r_theta % (np.pi * 2)
-    return out_x, out_y, out_angles, hidden_features
+    return out_x, out_y, out_angles, input_features
 
 
-def translate_base_data(x, y, angles, hidden_features, translation_x, translation_y):
+def translate_base_data(x, y, angles, input_features, translation_x, translation_y):
     tx, ty = x + translation_x, y + translation_y
-    return tx, ty, angles, hidden_features
+    return tx, ty, angles, input_features
 
 
 def make_one_graph(num_points=120, rot=None, translation=None):
     assert not (rot and translation)  # TODO hack - need to make these affine transformations somehow?
-    x, y, theta, h = get_base_data(num_points, cov=0.5)
+    x, y, theta,input_features= get_base_data(num_points, cov=0.5)
 
     if rot:
-        x, y, theta, h = rotate_base_data(x, y, theta, h, rot)
+        x, y, theta,input_features= rotate_base_data(x, y, theta, input_features, rot)
     if translation:
-        x, y, theta, h = translate_base_data(x, y, theta, h, rot)
+        x, y, theta,input_features= translate_base_data(x, y, theta, input_features,rot)
 
-    output_forces = compute_targets_from_base_data(x, y, theta, h)
+    output_forces = compute_targets_from_base_data(x, y, theta, input_features)
 
-    data = {'x': x, 'y': y, 'theta': theta, 'h': h, 'output_forces': output_forces}
+    data = {'x': x, 'y': y, 'theta': theta, 'h':input_features,'output_forces': output_forces}
     df = pd.DataFrame(data=data)
     df = df.reset_index().rename(columns={'index': 'vertex_id'})
 
@@ -96,4 +102,6 @@ def make_dataset(num_graphs, num_points=500):
         df = pd.DataFrame(data)
         df['graph_id'] = n
         frames.append(df)
-    return pd.concat(frames)
+    out = pd.concat(frames)
+    out = out.reset_index(drop=True)
+    return out
