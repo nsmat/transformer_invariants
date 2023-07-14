@@ -106,4 +106,5 @@ def make_dataset(num_graphs, num_points=500):
         frames.append(df)
     out = pd.concat(frames)
     out = out.reset_index(drop=True)
+
     return out
