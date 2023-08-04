@@ -16,7 +16,7 @@ class RadialWeightFunction(torch.nn.Module):
         )
 
     def forward(self, dist):
-        return self.net(dist.squeeze(-1))
+        return self.net(dist)
 
 
 class RadiallyParamaterisedTensorProduct(torch.nn.Module):
@@ -43,7 +43,7 @@ class RadiallyParamaterisedTensorProduct(torch.nn.Module):
             shared_weights=False,
         )
 
-        self.radial_net = RadialWeightFunction(self.tp.weight_numel,
+        self.radial_net = RadialWeightFunction(self.tensor_product.weight_numel,
                                                radial_hidden_units)
 
     def forward(self, feature_spherical_harmonics, geometric_spherical_harmonics, norm):

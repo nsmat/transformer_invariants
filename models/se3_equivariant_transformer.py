@@ -3,6 +3,7 @@ import torch_geometric as tg
 import e3nn
 from models.attention_mechanisms import Se3AttentionHead
 
+
 class Se3EquivariantTransformer(torch.nn.Module):
 
     def __init__(self,
@@ -57,12 +58,3 @@ class Se3EquivariantTransformer(torch.nn.Module):
         pooled_output = tg.nn.global_add_pool(output_features, graph.batch)  # TODO Requires a test
 
         return pooled_output
-
-    @staticmethod
-    def compute_relative_positions(graph):
-        source_nodes = graph.edge_index[0, :]
-        target_nodes = graph.edge_index[1, :]
-
-        relative_positions = graph.positions[target_nodes] - graph.positions[source_nodes]
-
-        return relative_positions
