@@ -38,10 +38,9 @@ class Se3EquivariantTransformer(torch.nn.Module):
         spherical_harmonics = e3nn.o3.spherical_harmonics(edge_features)
         return spherical_harmonics
 
-    def compute_edge_features(self, graph):
+    def compute_edge_features(self, relative_positions):
         # TODO this can be a subclass function ultimately
-        # Might be good to precompute relative positions?
-        return edge_features
+        return relative_positions
 
     def forward(self, graph: tg.data.Data):
         edge_features = self.compute_edge_features(graph)
@@ -60,3 +59,12 @@ class Se3EquivariantTransformer(torch.nn.Module):
         pooled_output = tg.nn.global_add_pool(output_features, graph.batch) # TODO Requires a test
         
         return pooled_output
+
+    @staticmethod
+    def compute_relative_positions(graph):
+        source_nodes = graph.edge_index[0, :]
+        target_nodes = graph.edge_index[1, :]
+
+        relative_positions = graph.positions[target_nodes] - graph.positions[target_nodes]
+
+        return relative_positions
