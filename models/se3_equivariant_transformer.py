@@ -24,7 +24,7 @@ class Se3EquivariantTransformer(torch.nn.Module):
         self.initial_embedding = torch.nn.Embedding(num_features,  initial_embedding_dim)
         # TODO check that initial_embedding matches the input irrep?
     
-        self.attention_heads = {i: Se3AttentionHead(num_attention_layers
+        self.attention_heads = {i: Se3AttentionHead(num_attention_layers,
                                                     feature_input_repr,
                                                     feature_output_repr,
                                                     geometric_repr,
@@ -43,7 +43,7 @@ class Se3EquivariantTransformer(torch.nn.Module):
         # Might be good to precompute relative positions?
         return edge_features
 
-    def forward(self, graph: tg,):
+    def forward(self, graph: tg.data.Data):
         edge_features = self.compute_edge_features(graph)
         edge_spherical_harmonics = self.cast_edge_features_to_spherical_harmonics(edge_features)
 
@@ -57,6 +57,6 @@ class Se3EquivariantTransformer(torch.nn.Module):
         output_features = torch.concatenate(output_features)
         
         # Pooling over all features for prediction
-        pooled_output = tg.nn.global_add_pool(x, graph.batch) # TODO Requires a test
+        pooled_output = tg.nn.global_add_pool(output_features, graph.batch) # TODO Requires a test
         
         return pooled_output
