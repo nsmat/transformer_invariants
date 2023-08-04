@@ -1,6 +1,6 @@
 import torch
 import torch_geometric as tg
-from models import RadiallyParamaterisedTensorProduct, QueryNetwork
+from models.tensor_field_networks import RadiallyParamaterisedTensorProduct, QueryNetwork
 import e3nn
 
 class Se3EquivariantAttentionMechanism(tg.nn.MessagePassing):

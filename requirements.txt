@@ -1,0 +1,5 @@
+torch==1.13.1
+e3nn==0.5.1
+setuptools==60.2.0
+numpy==1.24.3
+pandas==2.0.2
