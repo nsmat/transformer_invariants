@@ -7,7 +7,34 @@ from torch_geometric.data.datapipes import functional_transform
 from torch_geometric.transforms import BaseTransform
 
 
-class PreComputeSe3Information(tg.transforms.BaseTransform):
+class OneHot(tg.transforms.BaseTransform):
+
+    def __init__(self, input: str, name: str, delete_original=False):
+        """Casts the data stored in :input: to a one hot representation
+        and stores it under :name:
+
+        if :delete_original: is True, then we also remove the original attribute
+        """
+        same_name = input == name
+        assert ~(same_name & delete_original), "Can't delete if setting to that name"
+
+        self.input = input
+        self.name = name
+        self.delete_original = delete_original
+
+
+    def forward(self, data: tg.data.Data) -> tg.data.Data:
+        to_cast = getattr(data, self.input)
+        one_hot = torch.nn.functional.one_hot(to_cast).float()
+        setattr(data, self.name, one_hot)
+
+        if self.delete_original:
+            delattr(data, self.input)
+
+        return data
+
+
+class EuclideanInformationTransform(tg.transforms.BaseTransform):
     """Computes distances and relative_positions and stores them in
     corresponding names"""
 

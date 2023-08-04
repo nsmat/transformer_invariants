@@ -3,7 +3,6 @@ import torch_geometric as tg
 import e3nn
 from models.attention_mechanisms import Se3AttentionHead
 
-
 class Se3EquivariantTransformer(torch.nn.Module):
 
     def __init__(self,
