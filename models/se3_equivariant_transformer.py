@@ -30,18 +30,20 @@ class Se3EquivariantTransformer(torch.nn.Module):
                                                     geometric_repr,
                                                     hidden_feature_repr,
                                                     key_and_query_irreps
-                                                    ) for i in range(num_attention_heads)}
+                                                    ) for i in range(num_attention_heads)
+                                                    }
 
     # TODO this should probably be where we compute different edge characteristics
     def cast_edge_features_to_spherical_harmonics(edge_features):
         spherical_harmonics = e3nn.o3.spherical_harmonics(edge_features)
         return spherical_harmonics
 
-    def compute_edge_features(self, edge_features):
+    def compute_edge_features(self, graph):
         # TODO this can be a subclass function ultimately
+        # Might be good to precompute relative positions?
         return edge_features
 
-    def forward(self, graph):
+    def forward(self, graph: tg,):
         edge_features = self.compute_edge_features(graph)
         edge_spherical_harmonics = self.cast_edge_features_to_spherical_harmonics(edge_features)
 
@@ -55,6 +57,6 @@ class Se3EquivariantTransformer(torch.nn.Module):
         output_features = torch.concatenate(output_features)
         
         # Pooling over all features for prediction
-        pooled_output = tg.nn.global_add_pool(x, graph.batch) # Not 100% sure how this works?
+        pooled_output = tg.nn.global_add_pool(x, graph.batch) # TODO Requires a test
         
-        return pooled_output     
+        return pooled_output
