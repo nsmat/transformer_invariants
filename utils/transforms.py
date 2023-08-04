@@ -22,7 +22,6 @@ class OneHot(tg.transforms.BaseTransform):
         self.name = name
         self.delete_original = delete_original
 
-
     def forward(self, data: tg.data.Data) -> tg.data.Data:
         to_cast = getattr(data, self.input)
         one_hot = torch.nn.functional.one_hot(to_cast).float()
@@ -48,11 +47,10 @@ class EuclideanInformationTransform(tg.transforms.BaseTransform):
         # Normalise distances to between 0 and 1
         if distances.numel > 0:
             max_distance = distances.max()
-            distances = distances/max_distance
+            distances = distances / max_distance
 
         # Save to named elements
         data.relative_positions = relative_positions
         data.distances = distances
 
         return data
-
