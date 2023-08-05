@@ -76,11 +76,11 @@ class QueryNetwork(torch.nn.Module):
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
 
-        self.layers = torch.nn.Sequential([
+        self.layers = torch.nn.Sequential(
             torch.nn.Linear(init_dim, hidden_dim),
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_dim, output_dim)
-        ])
+        )
 
     def forward(self, x):
         return x.layers(x)

@@ -34,10 +34,10 @@ class Se3EquivariantAttentionMechanism(tg.nn.MessagePassing):
                                                                 radial_hidden_units=16
                                                                 )
 
-    def forward(self, edge_index, node_features, edge_features):
-        k = self.key_network(node_features, edge_features)
+    def forward(self, edge_index, node_features, edge_features, distances):
+        k = self.key_network(node_features, edge_features, distances)
         q = self.query_network(node_features)
-        v = self.value_network(node_features, edge_features)
+        v = self.value_network(node_features, edge_features, distances)
 
         alpha = k @ q.T
         alpha = torch.nn.functional.softmax(alpha, dim=1)
@@ -100,8 +100,8 @@ class Se3AttentionHead(torch.nn.Module):
         )
         self.attention_layers.append(final_attention_layer)
 
-    def forward(self, edge_index, node_features, edge_features):
+    def forward(self, edge_index, node_features, edge_features, distances):
         for layer in self.attention_layers:
-            node_features = layer(edge_index, node_features, edge_features)
+            node_features = layer(edge_index, node_features, edge_features, distances)
 
         return node_features
