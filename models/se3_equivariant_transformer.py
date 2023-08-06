@@ -20,7 +20,7 @@ class Se3EquivariantTransformer(torch.nn.Module):
         super().__init__()
 
         self.geometric_repr = geometric_repr
-        self.initial_embedding = torch.nn.Embedding(num_features, initial_embedding_dim)
+        self.initial_embedding = torch.nn.Linear(num_features, initial_embedding_dim)
         # TODO check that initial_embedding matches the input irrep?
 
         self.attention_heads = {i: Se3AttentionHead(num_attention_layers,

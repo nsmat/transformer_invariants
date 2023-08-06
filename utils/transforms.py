@@ -19,7 +19,9 @@ class OneHot(tg.transforms.BaseTransform):
 
     def __call__(self, data: tg.data.Data) -> tg.data.Data:
         to_cast = getattr(data, self.input)
-        one_hot = torch.nn.functional.one_hot(to_cast).float()
+        one_hot = torch.nn.functional.one_hot(to_cast)
+        one_hot = one_hot.float() # Cast to float so that it is compatible with linear embeddings later on
+
         setattr(data, self.name, one_hot)
 
         if self.delete_original:
@@ -38,6 +40,7 @@ class EuclideanInformationTransform(tg.transforms.BaseTransform):
         relative_positions = data.pos[target_nodes] - data.pos[source_nodes]
 
         distances = torch.norm(relative_positions, p=2, dim=-1).view(-1, 1)
+        relative_positions /= distances # Normalize relative positions to unit vectors
 
         # Normalise distances to between 0 and 1 (if nonempty)
         if distances.numel() > 0:

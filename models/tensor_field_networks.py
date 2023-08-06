@@ -20,7 +20,7 @@ class RadialWeightFunction(torch.nn.Module):
 
 
 class RadiallyParamaterisedTensorProduct(torch.nn.Module):
-    """ SE(3) equivariant convolution, parameterised by a radial network"""
+    """ SE(3) equivariant tensor product, parameterised by a radial network"""
 
     def __init__(self,
                  feature_irreps: e3nn.o3.Irreps,
@@ -36,7 +36,7 @@ class RadiallyParamaterisedTensorProduct(torch.nn.Module):
             feature_irreps,
             geometric_irreps,
             irreps_out,
-            irrep_normalization="component",
+            irrep_normalization="norm",
             path_normalization="element",
             internal_weights=False,  # This means that the weights of the tensor product are actually not learnable.
             # Instead the weights are actually provided as a function of the radial basis vector
@@ -61,26 +61,42 @@ class RadiallyParamaterisedTensorProduct(torch.nn.Module):
         return output
 
 
-class QueryNetwork(torch.nn.Module):
-    """The query network is an MLP. 
+class GraphAdaptedTensorProduct(RadiallyParamaterisedTensorProduct):
 
-    We assume that it only takes node features (which are invariant under group actions) as input.
-    Therefore, the queries are invariant.
-   
+    def forward(self, edge_index, features, geometric_information, distances):
+        source_indices = edge_index[0, :]
+        source_features = features[source_indices]
+
+        # Key queries, represented as a set of edge features
+        out_uv = super(self).forward(source_features,
+                                     geometric_information,
+                                     distances)
+        return out_uv
+
+
+class QueryNetwork(torch.nn.Module):
+    """The query network is an equivariant linear embedding.
+
+    To ensure equivariance and compatibility with our fibre structure we
+    leverage
     """
 
-    def __init__(self, init_dim, hidden_dim, output_dim):
+    def __init__(self,
+                 feature_irreps: e3nn.o3.Irreps,
+                 irreps_out: e3nn.o3.Irreps):
         super().__init__()
 
-        self.init_dim = init_dim
-        self.hidden_dim = hidden_dim
-        self.output_dim = output_dim
+        self.feature_irreps = feature_irreps
+        self.irreps_out = irreps_out
+        self.constant_irreps = constant_irrep = e3nn.o3.Irreps('1x0e')
+        self.constant = torch.tensor([0.])
 
-        self.layers = torch.nn.Sequential(
-            torch.nn.Linear(init_dim, hidden_dim),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_dim, output_dim)
+        self.tensor_product = e3nn.o3.FullyConnectedTensorProduct(
+            feature_irreps,
+            constant_irrep,
+            irreps_out,
+            irrep_normalization='norm'
         )
 
-    def forward(self, x):
-        return x.layers(x)
+    def forward(self, features):
+        return self.tensor_product(features, self.constant)
