@@ -1,10 +1,11 @@
 import torch
 import torch_geometric as tg
-from models.tensor_field_networks import RadiallyParamaterisedTensorProduct, QueryNetwork
+from models.tensor_field_networks import GraphAdaptedTensorProduct, QueryNetwork
+from models.attention_network import GraphAttentionNetwork
 import e3nn
 
 
-class Se3EquivariantAttentionMechanism(tg.nn.MessagePassing):
+class Se3EquivariantAttentionMechanism(GraphAttentionNetwork):
     """Takes features that live in
     Fourier space, along a Fourier representation of the edge features 
     (which capture the relative position of the nodes), and runs them
@@ -15,47 +16,24 @@ class Se3EquivariantAttentionMechanism(tg.nn.MessagePassing):
                  feature_irreps: e3nn.o3.Irreps,
                  geometric_irreps: e3nn.o3.Irreps,
                  value_out_irreps: e3nn.o3.Irreps,
-                 key_and_query_out_irreps: e3nn.o3.Irreps):
-        super().__init__(aggr='add')
-        self.key_network = RadiallyParamaterisedTensorProduct(feature_irreps=feature_irreps,
-                                                              geometric_irreps=geometric_irreps,
-                                                              irreps_out=key_and_query_out_irreps,
-                                                              radial_hidden_units=16,
-                                                             )
+                 key_and_query_out_irreps: e3nn.o3.Irreps,
+                 radial_network_hidden_units: int):
+        key_network = GraphAdaptedTensorProduct(feature_irreps=feature_irreps,
+                                                geometric_irreps=geometric_irreps,
+                                                irreps_out=key_and_query_out_irreps,
+                                                radial_hidden_units=radial_network_hidden_units,
 
-        self.query_network = QueryNetwork(init_dim=feature_irreps.dim,
-                                          hidden_dim=16,
-                                          output_dim=key_and_query_out_irreps.dim
-                                          )
+                                                )
+        query_network = QueryNetwork(feature_irreps=feature_irreps,
+                                     irreps_out=key_and_query_out_irreps)
 
-        self.value_network = RadiallyParamaterisedTensorProduct(feature_irreps=feature_irreps,
-                                                                geometric_irreps=geometric_irreps,
-                                                                irreps_out=value_out_irreps,
-                                                                radial_hidden_units=16
-                                                                )
+        value_network = GraphAdaptedTensorProduct(feature_irreps=feature_irreps,
+                                                  geometric_irreps=geometric_irreps,
+                                                  irreps_out=value_out_irreps,
+                                                  radial_hidden_units=radial_network_hidden_units
+                                                  )
 
-    def forward(self, edge_index, node_features, edge_features, distances):
-        k = self.key_network(node_features, edge_features, distances)
-        q = self.query_network(node_features)
-        v = self.value_network(node_features, edge_features, distances)
-
-        alpha = k @ q.T
-        alpha = torch.nn.functional.softmax(alpha, dim=1)
-        return self.propagate(edge_index, alpha=alpha, v=v)
-
-    def message(self, alpha, v_j, edge_index):
-        """v_j is the value of each message, and it is
-        actually a tensor as long as there are edges in the graph.
-        Thus, we need to reference the edge index and reshape alpha into 
-        a shape that reflects the edge structure.
-        
-        Just appalling.
-        """
-
-        alpha_j = alpha[edge_index[0, :], edge_index[1, :]]
-        alpha_j = alpha_j.reshape(alpha_j.shape[0], 1)
-
-        return alpha_j * v_j
+        super().__init__(K=key_network, Q=query_network, V=value_network)
 
 
 class Se3AttentionHead(torch.nn.Module):

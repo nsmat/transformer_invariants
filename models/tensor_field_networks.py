@@ -63,13 +63,13 @@ class RadiallyParamaterisedTensorProduct(torch.nn.Module):
 
 class GraphAdaptedTensorProduct(RadiallyParamaterisedTensorProduct):
 
-    def forward(self, edge_index, features, geometric_information, distances):
+    def forward(self, edge_index, features, edge_features, distances):
         source_indices = edge_index[0, :]
         source_features = features[source_indices]
 
         # Key queries, represented as a set of edge features
         out_uv = super(self).forward(source_features,
-                                     geometric_information,
+                                     edge_features,
                                      distances)
         return out_uv
 
