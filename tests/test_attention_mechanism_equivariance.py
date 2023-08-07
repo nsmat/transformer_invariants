@@ -7,22 +7,21 @@ from unittest import TestCase
 
 class GraphInputEquivarianceTest(TestCase):
 
-
     @staticmethod
     def make_3d_rotation_matrix(alpha, beta, gamma):
-        rot_z = torch.tensor([[torch.cos(alpha), -torch.sin(alpha), 0],
-                              [torch.sin(alpha),  torch.cos(alpha), 0],
-                              [0,                0,                 1]])
+        rot_z = torch.tensor([[torch.cos(gamma), -torch.sin(gamma), 0],
+                              [torch.sin(gamma), torch.cos(gamma), 0],
+                              [0, 0, 1]])
 
-        rot_y = torch.tensor([[torch.cos(beta), 0, torch.sin(beta)],
-                              [0,               1,               0],
-                              [-torch.sin(beta),0, torch.cos(beta)]])
-        rot_x = torch.tensor([[1, 0,                0               ],
-                              [0, torch.cos(gamma), -torch.sin(beta)],
-                              [0 ,torch.sin(gamma), torch.cos(gamma)]]
+        rot_y = torch.tensor([[torch.cos(alpha), 0, torch.sin(alpha)],
+                              [0, 1, 0],
+                              [-torch.sin(alpha), 0, torch.cos(alpha)]])
+        rot_x = torch.tensor([[1, 0, 0],
+                              [0, torch.cos(beta), -torch.sin(beta)],
+                              [0, torch.sin(beta), torch.cos(beta)]]
                              )
 
-        full_rotation_matrix = rot_z @ rot_y @ rot_x
+        full_rotation_matrix =   rot_y @ rot_x @ rot_z
 
         return full_rotation_matrix
 
@@ -34,7 +33,7 @@ class GraphInputEquivarianceTest(TestCase):
         out_graph = graph.clone()
         rotation_matrix = cls.make_3d_rotation_matrix(alpha, beta, gamma)
 
-        out_graph.pos =(rotation_matrix @ out_graph.pos.unsqueeze(-1)).squeeze(-1)
+        out_graph.pos = (rotation_matrix @ out_graph.pos.unsqueeze(-1)).squeeze(-1)
 
         # Rederive the relative positions using the updated positions
         transform = EuclideanInformationTransform()
