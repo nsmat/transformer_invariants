@@ -68,9 +68,9 @@ class GraphAdaptedTensorProduct(RadiallyParamaterisedTensorProduct):
         source_features = features[source_indices]
 
         # Key queries, represented as a set of edge features
-        out_uv = super(self).forward(source_features,
-                                     edge_features,
-                                     distances)
+        out_uv = super().forward(source_features,
+                                 edge_features,
+                                 distances)
         return out_uv
 
 

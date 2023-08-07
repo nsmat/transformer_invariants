@@ -1,5 +1,4 @@
 import torch
-import torch_geometric as tg
 from models.tensor_field_networks import GraphAdaptedTensorProduct, QueryNetwork
 from models.attention_network import GraphAttentionNetwork
 import e3nn
@@ -33,7 +32,7 @@ class Se3EquivariantAttentionMechanism(GraphAttentionNetwork):
                                                   radial_hidden_units=radial_network_hidden_units
                                                   )
 
-        super().__init__(K=key_network, Q=query_network, V=value_network)
+        super().__init__(K=key_network, Q=query_network, V=value_network, self_loop_attention_value=1.0)
 
 
 class Se3AttentionHead(torch.nn.Module):
