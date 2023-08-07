@@ -15,7 +15,12 @@ class GraphAttentionNetwork(tg.nn.MessagePassing):
         self.Q = Q
         self.V = V
 
-    def compute_alpha(self, edge_index, k_uv, q):
+
+    # This is split out so that we can overwrite it when testing
+    def alpha_normalisation(self, neighbourhood_dot_products):
+        return torch.nn.functional.softmax(neighbourhood_dot_products, dim=0)
+
+    def compute_alpha(self, edge_index, k_uv, q, self_loop_attention_value=1.0):
         """Creates a matrix of alpha values based on keys and queries"""
         alphas = torch.zeros((q.shape[0], q.shape[0]))
         for node in range(q.shape[0]): # iterate through the nodes
@@ -26,7 +31,7 @@ class GraphAttentionNetwork(tg.nn.MessagePassing):
             q_node = q[node]
 
             neighbourhood_dot = q_node @ neighbourhood_k.T # Matrix multiplication gives dot products
-            neighbourhood_alphas = torch.nn.functional.softmax(neighbourhood_dot, dim=0)
+            neighbourhood_alphas = self.alpha_normalisation(neighbourhood_dot)
 
             # Now, use the edges to store the alphas at the correct points
             neighbourhood_edges = edge_index[:, neighbourhood_edge_indices]
@@ -35,7 +40,7 @@ class GraphAttentionNetwork(tg.nn.MessagePassing):
 
         # Finally, we force an attention coefficient from each node to itself
         diagonal_indices = torch.arange(0, alphas.shape[0])
-        alphas[diagonal_indices, diagonal_indices] = 1.
+        alphas[diagonal_indices, diagonal_indices] = self_loop_attention_value
 
         return alphas
 
@@ -64,3 +69,7 @@ class GraphAttentionNetwork(tg.nn.MessagePassing):
         alpha_j = alpha_j.reshape(alpha_j.shape[0], 1)
 
         return alpha_j*v_j
+
+class TestAttentionNetwork(GraphAttentionNetwork):
+    def alpha_normalisation(self, neighbourhood_dot_products):
+        return neighbourhood_dot_products
