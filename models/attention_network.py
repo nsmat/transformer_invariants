@@ -10,7 +10,7 @@ import e3nn
 class GraphAttentionNetwork(tg.nn.MessagePassing):
 
     def __init__(self, K, Q, V, self_loop_attention_value):
-        super().__init__(aggr='add')
+        super().__init__(aggr='add', flow='source_to_target')
         self.K = K
         self.Q = Q
         self.V = V
@@ -51,28 +51,40 @@ class GraphAttentionNetwork(tg.nn.MessagePassing):
 
         q = self.Q(features)
         alpha = self.compute_alpha(edge_index, k_uv, q, self.self_loop_attention_value)
-        v = self.V(edge_index, features, edge_features, **kwargs)
 
         # We add self loops to the index _after_ alphas are computed, since we hardcode the alphas for those
-        looped_edge_index, _ = tg.utils.loop.add_self_loops(edge_index)
+        looped_edge_index, _ = tg.utils.loop.add_remaining_self_loops(edge_index, num_nodes=features.shape[0])
+        v = self.V(looped_edge_index, features, edge_features, **kwargs)
 
-        return self.propagate(looped_edge_index, alpha=alpha, v=v)
+        outputs = self.propagate(looped_edge_index, alpha=alpha, v=v)
+
+        # Enormous hack - somehow, adding self loops means that we end up with a number of 0 outputs appended
+        trimmed_outputs = outputs[:features.shape[0]]
+
+        return trimmed_outputs
 
 
-    def message(self, alpha, v_j, edge_index):
+    def message(self, edge_index, alpha, v_j):
         """
-        Absolutely horrendous - v_j is the value of each message, and it is
-        actually a tensor as long as there are edges in the graph.
-        Thus, we need to reference the edge index and reshape alpha into
-        a shape that reflects the edge structure.
+        In this function, v is the value of a message that is passed
+        along a specific edge. The dimension of v_j is:
+            number of edges * number of output features
 
-        awful awful awful
+        We obtain the final set of messages by looking up the alphas
+        corresponding to all the edges/messages, then multiplying the two together
         """
+        print(v_j.shape)
+        print(edge_index)
+        print(edge_index.shape)
 
-        alpha_j = alpha[edge_index[0, :], edge_index[1, :]]
+
+        target_nodes = edge_index[1, :]
+        source_nodes = edge_index[0, :]
+
+        alpha_j = alpha[target_nodes, source_nodes]
         alpha_j = alpha_j.reshape(alpha_j.shape[0], 1)
 
-        return alpha_j*v_j
+        return (alpha_j*v_j)
 
 class TestAttentionNetwork(GraphAttentionNetwork):
     def alpha_normalisation(self, neighbourhood_dot_products):
