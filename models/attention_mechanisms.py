@@ -21,7 +21,7 @@ class Se3EquivariantAttentionMechanism(tg.nn.MessagePassing):
                                                               geometric_irreps=geometric_irreps,
                                                               irreps_out=key_and_query_out_irreps,
                                                               radial_hidden_units=16,
-                                                              )
+                                                             )
 
         self.query_network = QueryNetwork(init_dim=feature_irreps.dim,
                                           hidden_dim=16,
