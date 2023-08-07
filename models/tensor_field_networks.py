@@ -39,7 +39,7 @@ class RadiallyParamaterisedTensorProduct(torch.nn.Module):
             irrep_normalization="norm",
             path_normalization="element",
             internal_weights=False,  # This means that the weights of the tensor product are actually not learnable.
-            # Instead the weights are actually provided as a function of the radial basis vector
+            # Instead the weights are provided as a function of the radial basis vector
             shared_weights=False,
         )
 
@@ -65,7 +65,7 @@ class GraphAdaptedTensorProduct(RadiallyParamaterisedTensorProduct):
 
     def forward(self, edge_index, features, edge_features, distances):
         source_indices = edge_index[0, :]
-        source_features = features[source_indices]
+        source_features = features[source_indices]  # Get the features associated with the source of each edge
 
         # Key queries, represented as a set of edge features
         out_uv = super().forward(source_features,

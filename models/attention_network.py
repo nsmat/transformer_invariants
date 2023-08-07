@@ -4,24 +4,25 @@ import torch_geometric as tg
 
 class GraphAttentionNetwork(tg.nn.MessagePassing):
 
-    def __init__(self, K, Q, V, self_loop_attention_value):
+    def __init__(self, K, Q, V, self_loop_attention_value, edge_feature_labels=None):
         super().__init__(aggr='add', flow='source_to_target')
         self.K = K
         self.Q = Q
         self.V = V
 
         self.self_loop_attention_value = self_loop_attention_value
+        self.edge_feature_labels = edge_feature_labels if edge_feature_labels else []
 
-    # This is split out so that we can overwrite it when testing
     def alpha_normalisation(self, neighbourhood_dot_products):
+        # This is split out so that we can overwrite it when testing
         return torch.nn.functional.softmax(neighbourhood_dot_products, dim=0)
 
     def compute_alpha(self, edge_index, k_uv, q, self_loop_attention_value):
         """Creates a matrix of alpha values based on keys and queries"""
         alphas = torch.zeros((q.shape[0], q.shape[0]))
         for node in range(q.shape[0]):  # iterate through the nodes
-            neighbourhood_edge_indices = (edge_index[1,
-                                          :] == node).nonzero()  # Finds the indices of the edges for which this node is a target.
+            # Finds the indices of the edges for which this node is a target.
+            neighbourhood_edge_indices = (edge_index[1, :] == node).nonzero()
             neighbourhood_edge_indices = neighbourhood_edge_indices.flatten()
 
             neighbourhood_k = k_uv[neighbourhood_edge_indices, :]  # Get all k in this neighbourhood
@@ -48,8 +49,23 @@ class GraphAttentionNetwork(tg.nn.MessagePassing):
         alpha = self.compute_alpha(edge_index, k_uv, q, self.self_loop_attention_value)
 
         # We add self loops to the index _after_ alphas are computed, since we hardcode the alphas for those
-        looped_edge_index, _ = tg.utils.loop.add_remaining_self_loops(edge_index, num_nodes=features.shape[0])
-        v = self.V(looped_edge_index, features, edge_features, **kwargs)
+        looped_edge_index, looped_edge_features = tg.utils.loop.add_remaining_self_loops(edge_index,
+                                                                                         edge_attr=edge_features,
+                                                                                         fill_value=0.0,
+                                                                                         num_nodes=features.shape[0])
+
+        # Hack to allow us to add loops and keep our edge feature naming intact
+        # To fix this need to replace the add_remaining_self_loops function with something homecooked
+        looped_kwargs = {}
+        for edge_feature_type in self.edge_feature_labels:
+            _, looped_edge_feature = tg.utils.loop.add_remaining_self_loops(edge_index,
+                                                                            edge_attr=kwargs[edge_feature_type],
+                                                                            fill_value=0.0,
+                                                                            num_nodes=features.shape[0])
+
+            looped_kwargs[edge_feature_type] = looped_edge_feature
+
+        v = self.V(looped_edge_index, features, looped_edge_features, **looped_kwargs)
 
         outputs = self.propagate(looped_edge_index,
                                  alpha=alpha,
@@ -57,7 +73,7 @@ class GraphAttentionNetwork(tg.nn.MessagePassing):
                                  )
 
         # Enormous hack - somehow, adding self loops means that we end up with a number of 0 outputs appended
-        # This appears to be a bug in the underlying
+        # This appears to be a bug in torch geometric
         trimmed_outputs = outputs[:features.shape[0]]
 
         return trimmed_outputs
