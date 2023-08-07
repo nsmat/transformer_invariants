@@ -54,5 +54,5 @@ class TensorProductEquivarianceTest(TestCase):
         angles = e3nn.o3.rand_angles(100)
 
         errors = compute_equivariance_error(rptp, angles, feature_irreps, geometric_irreps)
-        max_error = errors.max()
+        max_error = errors.max().item()
         self.assertAlmostEquals(max_error, 0)

@@ -2,11 +2,7 @@ import networkx as nx
 import torch
 import torch_geometric as tg
 
-from models.attention_network import GraphAttentionNetwork, TestAttentionNetwork
-from utils.transforms import EuclideanInformationTransform, OneHot
-
-import e3nn
-
+from models.attention_network import TestAttentionNetwork
 from unittest import TestCase
 
 
