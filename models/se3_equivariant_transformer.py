@@ -9,9 +9,8 @@ class Se3EquivariantTransformer(torch.nn.Module):
     def __init__(self,
                  num_features: int,
                  num_attention_layers: int,
-                 initial_embedding_dim: int,
+                 num_feature_channels: int,
                  num_attention_heads: int,
-                 feature_input_repr: e3nn.o3.Irreps,
                  feature_output_repr: e3nn.o3.Irreps,
                  geometric_repr: e3nn.o3.Irreps,
                  hidden_feature_repr: e3nn.o3.Irreps,
@@ -20,11 +19,15 @@ class Se3EquivariantTransformer(torch.nn.Module):
         super().__init__()
 
         self.geometric_repr = geometric_repr
-        self.initial_embedding = torch.nn.Linear(num_features, initial_embedding_dim)
+
+        # The initial embedding must be onto l=0  Spherical Harmonics,
+        # Since they need to be constant under all rotations
+        initial_feature_input_irrep = e3nn.o3.Irreps(f'{num_feature_channels}x0e')
+        self.initial_embedding = torch.nn.Linear(num_features, initial_feature_input_irrep.dim)
         # TODO check that initial_embedding matches the input irrep?
 
         self.attention_heads = {i: Se3AttentionHead(num_attention_layers,
-                                                    feature_input_repr,
+                                                    initial_feature_input_irrep,
                                                     feature_output_repr,
                                                     geometric_repr,
                                                     hidden_feature_repr,

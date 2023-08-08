@@ -40,10 +40,6 @@ class Se3EquivariantAttentionMechanism(GraphAttentionNetwork):
 
 
 class Se3AttentionHead(torch.nn.Module):
-    """An attention head is a stack of attention layers.
-
-    Its inputs and outputs are in Fourier space.    
-    """
 
     def __init__(self,
                  num_attention_layers: int,
