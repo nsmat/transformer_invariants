@@ -1,5 +1,5 @@
 import torch
-from models.tensor_field_networks import GraphAdaptedTensorProduct, QueryNetwork
+from models.tensor_field_networks import GraphAdaptedTensorProduct
 from models.attention_network import GraphAttentionNetwork
 import e3nn
 
@@ -23,8 +23,7 @@ class Se3EquivariantAttentionMechanism(GraphAttentionNetwork):
                                                 radial_hidden_units=radial_network_hidden_units,
 
                                                 )
-        query_network = QueryNetwork(feature_irreps=feature_irreps,
-                                     irreps_out=key_and_query_out_irreps)
+        query_network = e3nn.o3.Linear(feature_irreps, key_and_query_out_irreps)
 
         value_network = GraphAdaptedTensorProduct(feature_irreps=feature_irreps,
                                                   geometric_irreps=geometric_irreps,

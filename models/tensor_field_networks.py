@@ -72,31 +72,3 @@ class GraphAdaptedTensorProduct(RadiallyParamaterisedTensorProduct):
                                  edge_features,
                                  distances)
         return out_uv
-
-
-class QueryNetwork(torch.nn.Module):
-    """The query network is an equivariant linear embedding.
-
-    To ensure equivariance and compatibility with our fibre structure we
-    leverage
-    """
-
-    def __init__(self,
-                 feature_irreps: e3nn.o3.Irreps,
-                 irreps_out: e3nn.o3.Irreps):
-        super().__init__()
-
-        self.feature_irreps = feature_irreps
-        self.irreps_out = irreps_out
-        self.constant_irreps = constant_irrep = e3nn.o3.Irreps('1x0e')
-        self.constant = torch.tensor([0.])
-
-        self.tensor_product = e3nn.o3.FullyConnectedTensorProduct(
-            feature_irreps,
-            constant_irrep,
-            irreps_out,
-            irrep_normalization='norm'
-        )
-
-    def forward(self, features):
-        return self.tensor_product(features, self.constant)
