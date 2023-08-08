@@ -24,7 +24,6 @@ class Se3EquivariantTransformer(torch.nn.Module):
         # Since they need to be constant under all rotations
         initial_feature_input_irrep = e3nn.o3.Irreps(f'{num_feature_channels}x0e')
         self.initial_embedding = torch.nn.Linear(num_features, initial_feature_input_irrep.dim)
-        # TODO check that initial_embedding matches the input irrep?
 
         self.attention_heads = {i: Se3AttentionHead(num_attention_layers,
                                                     initial_feature_input_irrep,
@@ -35,18 +34,12 @@ class Se3EquivariantTransformer(torch.nn.Module):
                                                     ) for i in range(num_attention_heads)
                                 }
 
-    # TODO this should probably be where we compute different edge characteristics
-    def cast_edge_features_to_spherical_harmonics(self, edge_features):
-        spherical_harmonics = e3nn.o3.spherical_harmonics(self.geometric_repr, edge_features, normalize=True)
-        return spherical_harmonics
-
     def compute_edge_features(self, relative_positions):
-        # TODO this can be a subclass function ultimately
         return relative_positions
 
     def forward(self, graph: tg.data.Data):
         edge_features = self.compute_edge_features(graph)
-        edge_spherical_harmonics = self.cast_edge_features_to_spherical_harmonics(edge_features)
+        edge_spherical_harmonics = e3nn.o3.spherical_harmonics(self.geometric_repr, edge_features, normalize=True)
 
         embedded_node_features = self.initial_embedding(graph.node_features)
 

@@ -5,11 +5,6 @@ import e3nn
 
 
 class Se3EquivariantAttentionMechanism(GraphAttentionNetwork):
-    """Takes features that live in
-    Fourier space, along a Fourier representation of the edge features 
-    (which capture the relative position of the nodes), and runs them
-    through an equivariant attention mechanism.
-    """
 
     def __init__(self,
                  feature_irreps: e3nn.o3.Irreps,
