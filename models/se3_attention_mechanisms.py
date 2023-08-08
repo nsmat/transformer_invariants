@@ -49,6 +49,7 @@ class Se3AttentionHead(torch.nn.Module):
                  geometric_repr: e3nn.o3.Irreps,
                  hidden_feature_repr: e3nn.o3.Irreps,
                  key_and_query_irreps: e3nn.o3.Irreps,
+                 radial_network_hidden_units: int,
                  ):
         super().__init__()
 
@@ -57,7 +58,8 @@ class Se3AttentionHead(torch.nn.Module):
             feature_irreps=feature_input_repr,
             geometric_irreps=geometric_repr,
             value_out_irreps=hidden_feature_repr,
-            key_and_query_out_irreps=key_and_query_irreps
+            key_and_query_out_irreps=key_and_query_irreps,
+            radial_network_hidden_units=radial_network_hidden_units
         )
         self.attention_layers.append(initial_attention_layer)
 
@@ -66,7 +68,8 @@ class Se3AttentionHead(torch.nn.Module):
                 feature_irreps=hidden_feature_repr,
                 geometric_irreps=geometric_repr,
                 value_out_irreps=hidden_feature_repr,
-                key_and_query_out_irreps=key_and_query_irreps
+                key_and_query_out_irreps=key_and_query_irreps,
+                radial_network_hidden_units=radial_network_hidden_units
             )
             self.attention_layers.append(attention_layer)
 
@@ -75,6 +78,7 @@ class Se3AttentionHead(torch.nn.Module):
             geometric_irreps=geometric_repr,
             value_out_irreps=feature_output_repr,
             key_and_query_out_irreps=key_and_query_irreps,
+            radial_network_hidden_units=radial_network_hidden_units
         )
         self.attention_layers.append(final_attention_layer)
 

@@ -15,6 +15,7 @@ class Se3EquivariantTransformer(torch.nn.Module):
                  geometric_repr: e3nn.o3.Irreps,
                  hidden_feature_repr: e3nn.o3.Irreps,
                  key_and_query_irreps: e3nn.o3.Irreps,
+                 radial_network_hidden_units: int,
                  ):
         super().__init__()
 
@@ -30,7 +31,8 @@ class Se3EquivariantTransformer(torch.nn.Module):
                                                     feature_output_repr,
                                                     geometric_repr,
                                                     hidden_feature_repr,
-                                                    key_and_query_irreps
+                                                    key_and_query_irreps,
+                                                    radial_network_hidden_units
                                                     ) for i in range(num_attention_heads)
                                 }
 
