@@ -4,7 +4,7 @@ from models.attention_network import GraphAttentionNetwork
 import e3nn
 
 
-class Se3EquivariantAttentionMechanism(GraphAttentionNetwork):
+class Se3AttentionMechanism(GraphAttentionNetwork):
 
     def __init__(self,
                  feature_irreps: e3nn.o3.Irreps,
@@ -12,6 +12,12 @@ class Se3EquivariantAttentionMechanism(GraphAttentionNetwork):
                  value_out_irreps: e3nn.o3.Irreps,
                  key_and_query_out_irreps: e3nn.o3.Irreps,
                  radial_network_hidden_units: int):
+
+        self.feature_irreps = feature_irreps
+        self.geometric_irreps = geometric_irreps
+        self.value_out_irreps = value_out_irreps
+        self.key_and_query_out_irreps = key_and_query_out_irreps
+
         key_network = GraphAdaptedTensorProduct(feature_irreps=feature_irreps,
                                                 geometric_irreps=geometric_irreps,
                                                 irreps_out=key_and_query_out_irreps,
@@ -47,7 +53,7 @@ class Se3AttentionHead(torch.nn.Module):
         super().__init__()
 
         self.attention_layers = torch.nn.ModuleList()
-        initial_attention_layer = Se3EquivariantAttentionMechanism(
+        initial_attention_layer = Se3AttentionMechanism(
             feature_irreps=feature_input_repr,
             geometric_irreps=geometric_repr,
             value_out_irreps=hidden_feature_repr,
@@ -56,7 +62,7 @@ class Se3AttentionHead(torch.nn.Module):
         self.attention_layers.append(initial_attention_layer)
 
         for i in range(num_attention_layers - 2):
-            attention_layer = Se3EquivariantAttentionMechanism(
+            attention_layer = Se3AttentionMechanism(
                 feature_irreps=hidden_feature_repr,
                 geometric_irreps=geometric_repr,
                 value_out_irreps=hidden_feature_repr,
@@ -64,7 +70,7 @@ class Se3AttentionHead(torch.nn.Module):
             )
             self.attention_layers.append(attention_layer)
 
-        final_attention_layer = Se3EquivariantAttentionMechanism(
+        final_attention_layer = Se3AttentionMechanism(
             feature_irreps=hidden_feature_repr,
             geometric_irreps=geometric_repr,
             value_out_irreps=feature_output_repr,
