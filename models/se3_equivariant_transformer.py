@@ -40,19 +40,22 @@ class Se3EquivariantTransformer(torch.nn.Module):
         return relative_positions
 
     def forward(self, graph: tg.data.Data):
-        edge_features = self.compute_edge_features(graph)
-        edge_spherical_harmonics = e3nn.o3.spherical_harmonics(self.geometric_repr, edge_features, normalize=True)
+        edge_features = self.compute_edge_features(graph.relative_positions)
+        edge_spherical_harmonics = e3nn.o3.spherical_harmonics(self.geometric_repr,
+                                                               edge_features,
+                                                               normalize=True)
 
-        embedded_node_features = self.initial_embedding(graph.node_features)
+        embedded_node_features = self.initial_embedding(graph.z)
 
         output_features = []
         for i, attention_head in self.attention_heads.items():
-            head_features = attention_head.forward(embedded_node_features, edge_spherical_harmonics)
+            head_features = attention_head.forward(graph.edge_index, embedded_node_features,
+                                                   edge_spherical_harmonics, graph.distances)
             output_features.append(head_features)
 
-        output_features = torch.concatenate(output_features)
+        output_features = torch.concatenate(output_features, dim=1)
 
-        # Pooling over all features for prediction
+        # Pooling over all nodes for prediction
         pooled_output = tg.nn.global_add_pool(output_features, graph.batch)  # TODO Requires a test
 
         return pooled_output
