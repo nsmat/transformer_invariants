@@ -56,6 +56,6 @@ class Se3EquivariantTransformer(torch.nn.Module):
         output_features = torch.concatenate(output_features, dim=1)
 
         # Pooling over all nodes for prediction
-        pooled_output = tg.nn.global_add_pool(output_features, graph.batch)  # TODO Requires a test
+        pooled_output = tg.nn.global_add_pool(output_features, graph.batch)
 
         return pooled_output
