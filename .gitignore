@@ -9,3 +9,4 @@ report.pgf
 report.fdb_latexmk
 report.synctex.gz
 auxil
+/auxil/
