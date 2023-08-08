@@ -4,6 +4,7 @@ import e3nn
 
 from unittest import TestCase
 
+
 class TensorProductEquivarianceTest(TestCase):
     def test_equivariance_rptp(self):
         feature_irreps = e3nn.o3.Irreps("10x0e + 10x1e + 10x2e")
@@ -15,24 +16,26 @@ class TensorProductEquivarianceTest(TestCase):
                                                   output_irreps,
                                                   radial_hidden_units=16
                                                   )
-        angles = e3nn.o3.rand_angles(100)
 
-        errors = self.compute_equivariance_error(rptp, angles, feature_irreps, geometric_irreps)
+        distances = torch.tensor(1.).unsqueeze(0).unsqueeze(0)  # Add a batch dimension and a node dimension
+
+        errors = self.compute_all_errors(rptp, 100, feature_irreps, geometric_irreps, distances=distances)
         max_error = errors.max().item()
         self.assertAlmostEquals(max_error, 0)
 
-    def compute_equivariance_error(self, model, angles, feature_irreps, geometric_irreps):
+    def compute_all_errors(self, model, n, feature_irreps, geometric_irreps, **model_kwargs):
         errors = []
+        angles = e3nn.o3.rand_angles(n)
         for alpha, beta, gamma in zip(*angles):
-            error = self.compute_equivariance_error_rptp(alpha, beta, gamma, model, feature_irreps, geometric_irreps)
+            error = self.compute_equivariance_error(alpha, beta, gamma, model,
+                                                    feature_irreps, geometric_irreps, **model_kwargs)
             errors.append(error)
 
         return torch.concat(errors)
 
-    def compute_equivariance_error_rptp(self, alpha, beta, gamma, model, feature_irreps, geometric_irreps):
+    def compute_equivariance_error(self, alpha, beta, gamma, model, feature_irreps, geometric_irreps, **model_kwargs):
         random_features = feature_irreps.randn(1, -1)
         random_geometric = geometric_irreps.randn(1, -1)
-        distances = torch.tensor(1.).unsqueeze(0).unsqueeze(0)  # Add a batch dimension and a node dimension
 
         # Need to compute one 'rotation matrix' for each set of irreps
         rotation_matrix_features = feature_irreps.D_from_angles(alpha, beta, gamma)
@@ -43,12 +46,12 @@ class TensorProductEquivarianceTest(TestCase):
 
         output = model.forward(random_features.unsqueeze(0).unsqueeze(0),
                                random_geometric.unsqueeze(0).unsqueeze(0),
-                               distances)
+                               **model_kwargs)
 
         rotated_output = output @ rotation_matrix_features
         output_from_rotated_inputs = model.forward(rotated_features.unsqueeze(0).unsqueeze(0),
                                                    rotated_geometric.unsqueeze(0).unsqueeze(0),
-                                                   distances)
+                                                   **model_kwargs)
 
         error = (rotated_output - output_from_rotated_inputs).pow(2) / rotated_output.pow(2).sum()
 

@@ -46,14 +46,14 @@ class RadiallyParamaterisedTensorProduct(torch.nn.Module):
         self.radial_net = RadialWeightFunction(self.tensor_product.weight_numel,
                                                radial_hidden_units)
 
-    def forward(self, feature_spherical_harmonics, geometric_spherical_harmonics, norm):
+    def forward(self, feature_spherical_harmonics, geometric_spherical_harmonics, distances):
         """
         Applies a tensor product, paramaterised by the norm, between vectors of spherical
             harmonic coefficients representing features, one the one hand, and and
             spherical harmonics representing geometric information on the other.
 
         """
-        weights = self.radial_net(norm)  # Obtain the weights as a function of the norm
+        weights = self.radial_net(distances)  # Obtain the weights as a function of the norm
         output = self.tensor_product(feature_spherical_harmonics,
                                      geometric_spherical_harmonics,
                                      weights)
