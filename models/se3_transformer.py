@@ -62,8 +62,9 @@ class Se3EquivariantTransformer(torch.nn.Module):
         target_nodes = graph.edge_index[1, :]
         relative_positions = graph.pos[target_nodes] - graph.pos[source_nodes]
 
-        distances = torch.norm(relative_positions, p=2, dim=-1).view(-1, 1)
-        relative_positions /= distances  # Normalize relative positions to unit vectors
+        distances = torch.linalg.vector_norm(relative_positions, dim=-1)
+        distances = distances.reshape(-1, 1)
+        relative_positions = relative_positions/distances  # Normalize relative positions to unit vectors
 
         return relative_positions, distances
 
