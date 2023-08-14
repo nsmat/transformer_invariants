@@ -16,6 +16,7 @@ class Se3EquivariantTransformer(torch.nn.Module):
                  hidden_feature_repr: e3nn.o3.Irreps,
                  key_and_query_irreps: e3nn.o3.Irreps,
                  radial_network_hidden_units: int,
+                 number_of_output_features: int
                  ):
         """
 
@@ -49,6 +50,8 @@ class Se3EquivariantTransformer(torch.nn.Module):
                                                     ) for i in range(num_attention_heads)
                                 }
 
+        total_features_from_attention_heads = feature_output_repr.dim*num_attention_heads
+        self.projection_head = torch.nn.Linear(total_features_from_attention_heads, number_of_output_features)
     def compute_edge_features(self, relative_positions):
         return relative_positions
 
@@ -71,7 +74,9 @@ class Se3EquivariantTransformer(torch.nn.Module):
         # Pooling over all nodes for prediction
         pooled_output = tg.nn.global_add_pool(output_features, graph.batch)
 
-        return pooled_output
+        output_features = self.projection_head(pooled_output)
+
+        return output_features
 
     @staticmethod
     def _irreps_from_channels(channels, l_max, parity=-1):
@@ -87,10 +92,13 @@ class Se3EquivariantTransformer(torch.nn.Module):
                                                    num_attention_heads: int,
                                                    radial_network_hidden_units: int,
                                                    ):
-        key_query_irreps = cls._irreps_from_channels(num_channels, l_max)
-        feature_output_representation = cls._irreps_from_channels(num_channels, l_max)
+
+        # Following Fuchs et al, we use the convention that the transformers have half the number of channels
+        # as the final output
+        key_query_irreps = cls._irreps_from_channels(num_channels/2, l_max)
+        feature_output_representation = cls._irreps_from_channels(num_channels/2, l_max)
         geometric_irreps = cls._irreps_from_channels(1, l_max)
-        hidden_feature_representation = cls._irreps_from_channels(num_channels, l_max)
+        hidden_feature_representation = cls._irreps_from_channels(num_channels/2, l_max)
 
         return cls(num_features=num_features,
                    num_attention_layers=num_attention_layers,
@@ -100,4 +108,5 @@ class Se3EquivariantTransformer(torch.nn.Module):
                    geometric_repr=geometric_irreps,
                    hidden_feature_repr=hidden_feature_representation,
                    key_and_query_irreps=key_query_irreps,
-                   radial_network_hidden_units=radial_network_hidden_units)
+                   radial_network_hidden_units=radial_network_hidden_units,
+                   number_of_output_features=num_channels)
