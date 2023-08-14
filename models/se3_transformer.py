@@ -50,9 +50,9 @@ class Se3EquivariantTransformer(torch.nn.Module):
                                                     ) for i in range(num_attention_heads)
                                 }
 
-        total_features_from_attention_heads = feature_output_repr.dim * num_attention_heads
+        concatenated_feature_irreps = (feature_output_repr*num_attention_heads).simplify()
         final_output_irreps = e3nn.o3.Irreps(f"{number_of_output_features}x0e")
-        self.projection_head = e3nn.o3.Linear(total_features_from_attention_heads, final_output_irreps)
+        self.projection_head = e3nn.o3.Linear(concatenated_feature_irreps, final_output_irreps)
 
     def compute_edge_features(self, relative_positions):
         return relative_positions

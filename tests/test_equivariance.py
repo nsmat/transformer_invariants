@@ -74,17 +74,19 @@ class AttentionMechanismEquivarianceTest(TestCase):
         num_attention_heads = 2
 
         graph = self.make_test_graph()
+        number_of_output_features = 10
 
         net = Se3EquivariantTransformer(
-            num_features=graph.z.shape[1],
+            num_features=graph.node_features.shape[1],
             num_attention_layers=4,
-            num_feature_channels=10,
+            num_feature_channels=5,
             num_attention_heads=num_attention_heads,
             feature_output_repr=output_irreps,
             geometric_repr=geometric_irreps,
             hidden_feature_repr=feature_irreps,
             key_and_query_irreps=internal_key_query_irreps,
             radial_network_hidden_units=5,
+            number_of_output_features=number_of_output_features
         )
 
         errors = []
@@ -95,7 +97,7 @@ class AttentionMechanismEquivarianceTest(TestCase):
             output = net.forward(graph=graph
                                  )
 
-            final_output_irreps = (output_irreps * num_attention_heads).simplify()
+            final_output_irreps = e3nn.o3.Irreps(f'{number_of_output_features}x0e')
             rotation_matrix_for_output = final_output_irreps.D_from_angles(*angles).squeeze(0)
             rotated_output = output @ rotation_matrix_for_output
 
@@ -134,8 +136,8 @@ class AttentionMechanismEquivarianceTest(TestCase):
 
     def compute_all_errors_attention_mechanism(self, net, n, graph):
 
-        embedding = torch.nn.Linear(graph.z.shape[1], net.feature_irreps.dim)
-        features = embedding(graph.z.float())
+        embedding = torch.nn.Linear(graph.node_features.shape[1], net.feature_irreps.dim)
+        features = embedding(graph.node_features.float())
 
         edge_harmonics = e3nn.o3.spherical_harmonics(net.geometric_irreps,
                                                      graph.relative_positions,
@@ -207,7 +209,7 @@ class AttentionMechanismEquivarianceTest(TestCase):
         graph = tg.utils.from_networkx(g)
 
         euc_transform = EuclideanInformationTransform()
-        one_hot_transform = OneHot('z', 'z')
+        one_hot_transform = OneHot('z', 'node_features')
         transform = tg.transforms.Compose([euc_transform, one_hot_transform])
 
         graph = transform(graph)
