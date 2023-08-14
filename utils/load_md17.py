@@ -19,7 +19,7 @@ def load_md17(dataset_name, dataset_dir, radius):
 
     transforms = tg.transforms.Compose([radius_transform,
                                         one_hot_transform,
-                                        euclidean_information_transform,
+                                       # euclidean_information_transform,
                                         units_conversion,
                                         ])
 

@@ -50,13 +50,27 @@ class Se3EquivariantTransformer(torch.nn.Module):
                                                     ) for i in range(num_attention_heads)
                                 }
 
-        total_features_from_attention_heads = feature_output_repr.dim*num_attention_heads
-        self.projection_head = torch.nn.Linear(total_features_from_attention_heads, number_of_output_features)
+        total_features_from_attention_heads = feature_output_repr.dim * num_attention_heads
+        final_output_irreps = e3nn.o3.Irreps(f"{number_of_output_features}x0e")
+        self.projection_head = e3nn.o3.Linear(total_features_from_attention_heads, final_output_irreps)
+
     def compute_edge_features(self, relative_positions):
         return relative_positions
 
+    def get_relative_positions_and_distances(self, graph: tg.data.Data):
+        source_nodes = graph.edge_index[0, :]
+        target_nodes = graph.edge_index[1, :]
+        relative_positions = graph.pos[target_nodes] - graph.pos[source_nodes]
+
+        distances = torch.norm(relative_positions, p=2, dim=-1).view(-1, 1)
+        relative_positions /= distances  # Normalize relative positions to unit vectors
+
+        return relative_positions, distances
+
     def forward(self, graph: tg.data.Data):
-        edge_features = self.compute_edge_features(graph.relative_positions)
+        relative_positions, distances = self.get_relative_positions_and_distances(graph)
+
+        edge_features = self.compute_edge_features(relative_positions)
         edge_spherical_harmonics = e3nn.o3.spherical_harmonics(self.geometric_repr,
                                                                edge_features,
                                                                normalize=True)
@@ -66,7 +80,7 @@ class Se3EquivariantTransformer(torch.nn.Module):
         output_features = []
         for i, attention_head in self.attention_heads.items():
             head_features = attention_head.forward(graph.edge_index, embedded_node_features,
-                                                   edge_spherical_harmonics, graph.distances)
+                                                   edge_spherical_harmonics, distances)
             output_features.append(head_features)
 
         attention_output_features = torch.concatenate(output_features, dim=1)
@@ -74,7 +88,8 @@ class Se3EquivariantTransformer(torch.nn.Module):
         # Pooling over all nodes for prediction
         pooled_output = tg.nn.global_add_pool(attention_output_features, graph.batch)
 
-        output_features = self.projection_head(pooled_output)
+        output_features = self.projection_head(
+            pooled_output)  # projection head is an equivariant map onto type 0 vectors
 
         return output_features
 
@@ -92,13 +107,12 @@ class Se3EquivariantTransformer(torch.nn.Module):
                                                    num_attention_heads: int,
                                                    radial_network_hidden_units: int,
                                                    ):
-
         # Following Fuchs et al, we use the convention that the transformers have half the number of channels
         # as the final output
-        key_query_irreps = cls._irreps_from_channels(num_channels//2, l_max)
-        feature_output_representation = cls._irreps_from_channels(num_channels//2, l_max)
+        key_query_irreps = cls._irreps_from_channels(num_channels // 2, l_max)
+        feature_output_representation = cls._irreps_from_channels(num_channels // 2, l_max)
         geometric_irreps = cls._irreps_from_channels(1, l_max)
-        hidden_feature_representation = cls._irreps_from_channels(num_channels//2, l_max)
+        hidden_feature_representation = cls._irreps_from_channels(num_channels // 2, l_max)
 
         return cls(num_features=num_features,
                    num_attention_layers=num_attention_layers,
