@@ -35,6 +35,8 @@ class EuclideanInformationTransform(tg.transforms.BaseTransform):
     corresponding names"""
 
     def __call__(self, data: tg.data.Data) -> tg.data.Data:
+        setattr(data, 'pos', torch.autograd.Variable(data.pos, requires_grad=True))
+
         source_nodes = data.edge_index[0, :]
         target_nodes = data.edge_index[1, :]
         relative_positions = data.pos[target_nodes] - data.pos[source_nodes]

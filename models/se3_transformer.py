@@ -69,10 +69,10 @@ class Se3EquivariantTransformer(torch.nn.Module):
                                                    edge_spherical_harmonics, graph.distances)
             output_features.append(head_features)
 
-        output_features = torch.concatenate(output_features, dim=1)
+        attention_output_features = torch.concatenate(output_features, dim=1)
 
         # Pooling over all nodes for prediction
-        pooled_output = tg.nn.global_add_pool(output_features, graph.batch)
+        pooled_output = tg.nn.global_add_pool(attention_output_features, graph.batch)
 
         output_features = self.projection_head(pooled_output)
 
