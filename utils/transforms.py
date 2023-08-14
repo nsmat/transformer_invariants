@@ -59,3 +59,17 @@ class KCalToMeVConversion(tg.transforms.BaseTransform):
         conversion_factor = 43.3634
         graph.energy = graph.energy * conversion_factor
         graph.force = graph.force * conversion_factor
+
+        return graph
+
+
+class DeleteAttributes(tg.transforms.BaseTransform):
+
+    def __init__(self, to_delete: list):
+        self.to_delete = to_delete
+
+    def __call__(self, graph):
+        for attr in self.to_delete:
+            delattr(graph, attr)
+
+        return graph

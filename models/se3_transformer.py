@@ -17,6 +17,19 @@ class Se3EquivariantTransformer(torch.nn.Module):
                  key_and_query_irreps: e3nn.o3.Irreps,
                  radial_network_hidden_units: int,
                  ):
+        """
+
+        :param num_features: the number of node features. Note that for a one-hot representation of
+                a categorical feature, this would correspond to the number of categories
+        :param num_attention_layers:
+        :param num_feature_channels:
+        :param num_attention_heads:
+        :param feature_output_repr:
+        :param geometric_repr:
+        :param hidden_feature_repr:
+        :param key_and_query_irreps:
+        :param radial_network_hidden_units:
+        """
         super().__init__()
 
         self.geometric_repr = geometric_repr
@@ -45,7 +58,7 @@ class Se3EquivariantTransformer(torch.nn.Module):
                                                                edge_features,
                                                                normalize=True)
 
-        embedded_node_features = self.initial_embedding(graph.z)
+        embedded_node_features = self.initial_embedding(graph.node_features)
 
         output_features = []
         for i, attention_head in self.attention_heads.items():

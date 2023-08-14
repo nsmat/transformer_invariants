@@ -1,6 +1,6 @@
 import torch_geometric as tg
 import torch
-from utils.transforms import OneHot, EuclideanInformationTransform, KCalToMeVConversion
+from utils.transforms import OneHot, EuclideanInformationTransform, KCalToMeVConversion, DeleteAttributes
 
 
 def load_md17(dataset_name, dataset_dir, radius):
@@ -11,7 +11,7 @@ def load_md17(dataset_name, dataset_dir, radius):
     radius_transform = tg.transforms.RadiusGraph(r=radius)
 
     one_hot_transform = OneHot(input='z',
-                               name='z',
+                               name='node_features',
                                delete_original=False
                                )
     euclidean_information_transform = EuclideanInformationTransform()
