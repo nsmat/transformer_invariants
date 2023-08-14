@@ -12,7 +12,7 @@ def load_md17(dataset_name, dataset_dir, radius):
 
     one_hot_transform = OneHot(input='z',
                                name='node_features',
-                               delete_original=False
+                               delete_original=True
                                )
     euclidean_information_transform = EuclideanInformationTransform()
     units_conversion = KCalToMeVConversion()

@@ -95,10 +95,10 @@ class Se3EquivariantTransformer(torch.nn.Module):
 
         # Following Fuchs et al, we use the convention that the transformers have half the number of channels
         # as the final output
-        key_query_irreps = cls._irreps_from_channels(num_channels/2, l_max)
-        feature_output_representation = cls._irreps_from_channels(num_channels/2, l_max)
+        key_query_irreps = cls._irreps_from_channels(num_channels//2, l_max)
+        feature_output_representation = cls._irreps_from_channels(num_channels//2, l_max)
         geometric_irreps = cls._irreps_from_channels(1, l_max)
-        hidden_feature_representation = cls._irreps_from_channels(num_channels/2, l_max)
+        hidden_feature_representation = cls._irreps_from_channels(num_channels//2, l_max)
 
         return cls(num_features=num_features,
                    num_attention_layers=num_attention_layers,
