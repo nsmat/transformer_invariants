@@ -79,12 +79,12 @@ class Se3EquivariantTransformer(torch.nn.Module):
         geometric_irreps = cls._irreps_from_channels(1, l_max)
         hidden_feature_representation = cls._irreps_from_channels(num_channels, l_max)
 
-        return cls.__init__(num_features=num_features,
-                            num_attention_layers=num_attention_layers,
-                            num_feature_channels=num_channels,
-                            num_attention_heads=num_attention_heads,
-                            feature_output_repr=feature_output_representation,
-                            geometric_repr=geometric_irreps,
-                            hidden_feature_repr=hidden_feature_representation,
-                            key_and_query_irreps=key_query_irreps,
-                            radial_network_hidden_units=radial_network_hidden_units)
+        return cls(num_features=num_features,
+                   num_attention_layers=num_attention_layers,
+                   num_feature_channels=num_channels,
+                   num_attention_heads=num_attention_heads,
+                   feature_output_repr=feature_output_representation,
+                   geometric_repr=geometric_irreps,
+                   hidden_feature_repr=hidden_feature_representation,
+                   key_and_query_irreps=key_query_irreps,
+                   radial_network_hidden_units=radial_network_hidden_units)

@@ -1,6 +1,6 @@
 import torch_geometric as tg
 import torch
-from utils.transforms import OneHot, EuclideanInformationTransform
+from utils.transforms import OneHot, EuclideanInformationTransform, KCalToMeVConversion
 
 
 def load_md17(dataset_name, dataset_dir, radius):
@@ -15,16 +15,31 @@ def load_md17(dataset_name, dataset_dir, radius):
                                delete_original=False
                                )
     euclidean_information_transform = EuclideanInformationTransform()
+    units_conversion = KCalToMeVConversion()
 
-    # TODO check whether this is correct - seems weird that we add distance last?
     transforms = tg.transforms.Compose([radius_transform,
                                         one_hot_transform,
-                                        euclidean_information_transform
+                                        euclidean_information_transform,
+                                        units_conversion,
                                         ])
 
     train = tg.datasets.MD17(dataset_dir, name=dataset_name, train=True, transform=transforms)
     test = tg.datasets.MD17(dataset_dir, name=dataset_name, train=False, transform=transforms)
 
+    train, validation = create_validation_split(train)
+
     return {'train': train,
+            'validation': validation,
             'test': test
             }
+
+
+def create_validation_split(train_dataset, proportion=0.05, seed=123):
+    generator = torch.Generator().manual_seed(seed)
+    validation_length = int(len(train_dataset)*proportion)
+    train_length = len(train_dataset) - validation_length
+    train_dataset, validation_dataset = torch.utils.data.random_split(train_dataset,
+                                                                      [train_length, validation_length],
+                                                                      generator=generator)
+
+    return train_dataset, validation_dataset
