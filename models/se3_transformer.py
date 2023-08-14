@@ -59,3 +59,32 @@ class Se3EquivariantTransformer(torch.nn.Module):
         pooled_output = tg.nn.global_add_pool(output_features, graph.batch)
 
         return pooled_output
+
+    @staticmethod
+    def _irreps_from_channels(channels, l_max, parity=-1):
+        irreps = (e3nn.o3.Irreps.spherical_harmonics(l_max, parity) * channels)
+        return irreps.sort()[0].simplify()
+
+    @classmethod
+    def construct_from_number_of_channels_and_lmax(cls,
+                                                   num_channels: int,
+                                                   l_max: int,
+                                                   num_features: int,
+                                                   num_attention_layers: int,
+                                                   num_attention_heads: int,
+                                                   radial_network_hidden_units: int,
+                                                   ):
+        key_query_irreps = cls._irreps_from_channels(num_channels, l_max)
+        feature_output_representation = cls._irreps_from_channels(num_channels, l_max)
+        geometric_irreps = cls._irreps_from_channels(1, l_max)
+        hidden_feature_representation = cls._irreps_from_channels(num_channels, l_max)
+
+        return cls.__init__(num_features=num_features,
+                            num_attention_layers=num_attention_layers,
+                            num_feature_channels=num_channels,
+                            num_attention_heads=num_attention_heads,
+                            feature_output_repr=feature_output_representation,
+                            geometric_repr=geometric_irreps,
+                            hidden_feature_repr=hidden_feature_representation,
+                            key_and_query_irreps=key_query_irreps,
+                            radial_network_hidden_units=radial_network_hidden_units)
