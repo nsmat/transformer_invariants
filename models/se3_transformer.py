@@ -107,6 +107,7 @@ class Se3EquivariantTransformer(torch.nn.Module):
                                                    num_attention_layers: int,
                                                    num_attention_heads: int,
                                                    radial_network_hidden_units: int,
+                                                   **subclass_kwargs
                                                    ):
         # Following Fuchs et al, we use the convention that the transformers have half the number of channels
         # as the final output
@@ -124,7 +125,8 @@ class Se3EquivariantTransformer(torch.nn.Module):
                    hidden_feature_repr=hidden_feature_representation,
                    key_and_query_irreps=key_query_irreps,
                    radial_network_hidden_units=radial_network_hidden_units,
-                   number_of_output_features=num_channels)
+                   number_of_output_features=num_channels,
+                   **subclass_kwargs)
 
 
 class SE3EquivariantTransformerInverseRadiusSquared(Se3EquivariantTransformer):
