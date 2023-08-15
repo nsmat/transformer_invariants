@@ -180,11 +180,11 @@ class SE3EquivariantTransformerMixedHeads(Se3EquivariantTransformer):
 
         output_features = []
         for head_name, attention_head in self.attention_heads.items():
-            spherical_harmonics = geometric_information[head_name]['spherical_harmonics'],
-            head_features = attention_head.forward(graph.edge_index,
-                                                   embedded_node_features,
-                                                   spherical_harmonics,
-                                                   geometric_information[head_name]['distances'])
+            spherical_harmonics = geometric_information[head_name]['spherical_harmonics']
+            head_features = attention_head.forward(edge_index=graph.edge_index,
+                                                   node_features=embedded_node_features,
+                                                   edge_features=spherical_harmonics,
+                                                   distances=geometric_information[head_name]['distances'])
             output_features.append(head_features)
 
         attention_output_features = torch.concatenate(output_features, dim=1)

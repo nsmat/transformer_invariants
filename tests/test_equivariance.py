@@ -6,7 +6,9 @@ import torch_geometric as tg
 
 from models.tensor_field_networks import RadiallyParamaterisedTensorProduct
 from models.se3_attention_mechanisms import Se3AttentionMechanism
-from models.se3_transformer import Se3EquivariantTransformer, SE3EquivariantTransformerInverseRadiusSquared
+from models.se3_transformer import Se3EquivariantTransformer, \
+    SE3EquivariantTransformerInverseRadiusSquared, \
+    SE3EquivariantTransformerMixedHeads
 from unittest import TestCase
 
 
@@ -66,38 +68,34 @@ class TensorProductEquivarianceTest(TestCase):
 
 class AttentionMechanismEquivarianceTest(TestCase):
 
-    def _factory_for_tests(self, transformer_class):
-        feature_irreps = e3nn.o3.Irreps("5x0e+5x1e")
-        geometric_irreps = e3nn.o3.Irreps("3x0e+3x1e")
-        output_irreps = e3nn.o3.Irreps("10x0e+10x1e")
-        internal_key_query_irreps = e3nn.o3.Irreps("5x0e+5x1e")
-        num_attention_heads = 2
+    def __init__(self, *args, **kwargs):
+        super(AttentionMechanismEquivarianceTest, self).__init__(*args, **kwargs)
+
+        self.feature_irreps = e3nn.o3.Irreps("5x0e+5x1e")
+        self.geometric_irreps = e3nn.o3.Irreps("3x0e+3x1e")
+        self.output_irreps = e3nn.o3.Irreps("10x0e+10x1e")
+        self.internal_key_query_irreps = e3nn.o3.Irreps("5x0e+5x1e")
+        self.num_attention_heads = 2
+        self.number_of_output_features = 10
+        self.num_attention_layres = 4
+        self.num_features_channels = 5
+
+        self.num_input_features = 3
+        self.radial_hidden_network_units = 16
+
+    def _factory_for_tests(self, model):
 
         graph = self.make_test_graph()
-        number_of_output_features = 10
-
-        net = transformer_class(
-            num_features=graph.node_features.shape[1],
-            num_attention_layers=4,
-            num_feature_channels=5,
-            num_attention_heads=num_attention_heads,
-            feature_output_repr=output_irreps,
-            geometric_repr=geometric_irreps,
-            hidden_feature_repr=feature_irreps,
-            key_and_query_irreps=internal_key_query_irreps,
-            radial_network_hidden_units=5,
-            number_of_output_features=number_of_output_features
-        )
 
         errors = []
         all_angles = e3nn.o3.rand_angles(100)
         all_angles = zip(*all_angles)
 
         for angles in all_angles:
-            output = net.forward(graph=graph
-                                 )
+            output = model.forward(graph=graph
+                                   )
 
-            final_output_irreps = e3nn.o3.Irreps(f'{number_of_output_features}x0e')
+            final_output_irreps = e3nn.o3.Irreps(f'{self.number_of_output_features}x0e')
             rotation_matrix_for_output = final_output_irreps.D_from_angles(*angles).squeeze(0)
             rotated_output = output @ rotation_matrix_for_output
 
@@ -105,7 +103,7 @@ class AttentionMechanismEquivarianceTest(TestCase):
             position_rotator = e3nn.o3.Irreps('1x1e').D_from_angles(*angles).squeeze(0)
             rotated_graph.relative_positions = rotated_graph.relative_positions @ position_rotator
 
-            output_from_rotated_inputs = net.forward(graph=rotated_graph)
+            output_from_rotated_inputs = model.forward(graph=rotated_graph)
 
             error = (rotated_output - output_from_rotated_inputs).pow(2) / rotated_output.pow(2).sum()
 
@@ -115,13 +113,57 @@ class AttentionMechanismEquivarianceTest(TestCase):
 
         self.assertAlmostEqual(errors.max().item(), 0)
 
-
     def test_equivariance_vanilla_transformer(self):
-        self._factory_for_tests(Se3EquivariantTransformer)
+
+        model = Se3EquivariantTransformer(
+            num_features=self.num_input_features,
+            num_attention_layers=self.num_attention_layres,
+            num_feature_channels=self.num_features_channels,
+            num_attention_heads=self.num_attention_heads,
+            feature_output_repr=self.output_irreps,
+            geometric_repr=self.geometric_irreps,
+            hidden_feature_repr=self.feature_irreps,
+            key_and_query_irreps=self.internal_key_query_irreps,
+            radial_network_hidden_units=self.radial_hidden_network_units,
+            number_of_output_features=self.number_of_output_features, )
+
+        self._factory_for_tests(model)
 
     def test_equivariance_inverse_distance_transformer(self):
-        self._factory_for_tests(SE3EquivariantTransformerInverseRadiusSquared)
+        model = SE3EquivariantTransformerInverseRadiusSquared(
+            num_features=self.num_input_features,
+            num_attention_layers=self.num_attention_layres,
+            num_feature_channels=self.num_features_channels,
+            num_attention_heads=self.num_attention_heads,
+            feature_output_repr=self.output_irreps,
+            geometric_repr=self.geometric_irreps,
+            hidden_feature_repr=self.feature_irreps,
+            key_and_query_irreps=self.internal_key_query_irreps,
+            radial_network_hidden_units=self.radial_hidden_network_units,
+            number_of_output_features=self.number_of_output_features, )
 
+        self._factory_for_tests(model)
+
+    def test_equivariance_multi_type_transformer(self):
+        invariant_dictionary = {'0': 'normal',
+                     '1': 'inverse'}
+
+        model = SE3EquivariantTransformerMixedHeads(
+            num_features=self.num_input_features,
+            num_attention_layers=self.num_attention_layres,
+            num_feature_channels=self.num_features_channels,
+            num_attention_heads=self.num_attention_heads,
+            feature_output_repr=self.output_irreps,
+            geometric_repr=self.geometric_irreps,
+            hidden_feature_repr=self.feature_irreps,
+            key_and_query_irreps=self.internal_key_query_irreps,
+            radial_network_hidden_units=self.radial_hidden_network_units,
+            number_of_output_features=self.number_of_output_features,
+            invariant_dictionary=invariant_dictionary
+
+        )
+
+        self._factory_for_tests(model, )
 
     def test_equivariance_attention_mechanism(self):
         feature_irreps = e3nn.o3.Irreps("5x0e")

@@ -84,6 +84,9 @@ class Se3AttentionHead(torch.nn.Module):
 
     def forward(self, edge_index, node_features, edge_features, distances):
         for layer in self.attention_layers:
-            node_features = layer(edge_index, node_features, edge_features, distances=distances)
+            node_features = layer(edge_index,
+                                  node_features,
+                                  edge_features,
+                                  distances=distances)
 
         return node_features
