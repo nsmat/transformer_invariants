@@ -145,8 +145,11 @@ class SE3EquivariantTransformerMixedHeads(Se3EquivariantTransformer):
 
     def __init__(self, invariant_dictionary, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.model_label = 'Mixed'
+
         self.invariant_dictionary = invariant_dictionary
+        self.model_label = 'Mixed'
+        for k, v in self.invariant_dictionary.items():
+            self.model_label += f'_{k}_{v}'
 
     def get_relative_positions_and_distances(self, graph: tg.data.Data):
         out_dict = {}
