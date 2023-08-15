@@ -33,38 +33,40 @@ class Se3EquivariantTransformer(torch.nn.Module):
         """
         super().__init__()
 
+        self.model_label = 'BaseTransformer'
+
         self.geometric_repr = geometric_repr
+        self.num_attention_heads = num_attention_heads
 
         # The initial embedding must be onto l=0  Spherical Harmonics,
         # Since they need to be constant under all rotations
         initial_feature_input_irrep = e3nn.o3.Irreps(f'{num_feature_channels}x0e')
         self.initial_embedding = torch.nn.Linear(num_features, initial_feature_input_irrep.dim)
 
-        self.attention_heads = {i: Se3AttentionHead(num_attention_layers,
-                                                    initial_feature_input_irrep,
-                                                    feature_output_repr,
-                                                    geometric_repr,
-                                                    hidden_feature_repr,
-                                                    key_and_query_irreps,
-                                                    radial_network_hidden_units
-                                                    ) for i in range(num_attention_heads)
-                                }
+        self.attention_heads = torch.nn.ModuleDict({i: Se3AttentionHead(num_attention_layers,
+                                                                        initial_feature_input_irrep,
+                                                                        feature_output_repr,
+                                                                        geometric_repr,
+                                                                        hidden_feature_repr,
+                                                                        key_and_query_irreps,
+                                                                        radial_network_hidden_units
+                                                                        ) for i in range(num_attention_heads)
+                                                    })
 
-        concatenated_feature_irreps = (feature_output_repr*num_attention_heads).simplify()
+        concatenated_feature_irreps = (feature_output_repr * num_attention_heads).simplify()
         final_output_irreps = e3nn.o3.Irreps(f"{number_of_output_features}x0e")
         self.projection_head = e3nn.o3.Linear(concatenated_feature_irreps, final_output_irreps)
 
-    def compute_edge_features(self, relative_positions):
-        return relative_positions
 
-    def get_relative_positions_and_distances(self, graph: tg.data.Data):
+    @staticmethod
+    def get_relative_positions_and_distances(graph: tg.data.Data):
         source_nodes = graph.edge_index[0, :]
         target_nodes = graph.edge_index[1, :]
         relative_positions = graph.pos[target_nodes] - graph.pos[source_nodes]
 
         distances = torch.linalg.vector_norm(relative_positions, dim=-1)
         distances = distances.reshape(-1, 1)
-        relative_positions = relative_positions/distances  # Normalize relative positions to unit vectors
+        relative_positions = relative_positions / distances  # Normalize relative positions to unit vectors
 
         return relative_positions, distances
 
@@ -74,7 +76,8 @@ class Se3EquivariantTransformer(torch.nn.Module):
         edge_features = self.compute_edge_features(relative_positions)
         edge_spherical_harmonics = e3nn.o3.spherical_harmonics(self.geometric_repr,
                                                                edge_features,
-                                                               normalize=True)
+                                                               normalize=True
+                                                               )
 
         embedded_node_features = self.initial_embedding(graph.node_features)
 
@@ -125,3 +128,49 @@ class Se3EquivariantTransformer(torch.nn.Module):
                    key_and_query_irreps=key_query_irreps,
                    radial_network_hidden_units=radial_network_hidden_units,
                    number_of_output_features=num_channels)
+
+
+class SE3EquivariantTransformerInverseRadiusSquared(Se3EquivariantTransformer):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.model_label = 'InverseRadiusSquared'
+
+    @staticmethod
+    def get_relative_positions_and_distances(graph: tg.data.Data):
+        relative_positions, distances = super().get_relative_positions_and_distances(graph)
+        distances = distances.pow(-2)
+
+        return relative_positions, distances
+
+class SE3EquivariantTransformerMixedHeads(Se3EquivariantTransformer):
+
+    def __init__(self, invariant_dictionary, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.model_label = 'Mixed'
+        self.invariant_dictionary = invariant_dictionary
+
+        for v in self.invariant_dictionary.values():
+            assert v in ['normal', 'inverse', 'periodic']
+
+    def get_relative_positions_and_distances(self, graph: tg.data.Data):
+        out_dict = {}
+        for head, type in self.invariant_dictionary.items():
+            if type == 'normal':
+                relative_positions, distances = Se3EquivariantTransformer.get_relative_positions_and_distances(graph)
+            elif type == 'inverse':
+                relative_positions, distances = SE3EquivariantTransformerInverseRadiusSquared.get_relative_positions_and_distances(graph)
+            elif type == 'cos':
+                raise NotImplementedError()
+            else:
+                raise ValueError()
+            out_dict[head] = {'relative_positions': relative_positions,
+                              'distances': distances}
+
+
+
+        return
+
+    def forward(self, graph: tg.data.Data):
+
+
