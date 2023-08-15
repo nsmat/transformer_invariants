@@ -43,14 +43,14 @@ class Se3EquivariantTransformer(torch.nn.Module):
         initial_feature_input_irrep = e3nn.o3.Irreps(f'{num_feature_channels}x0e')
         self.initial_embedding = torch.nn.Linear(num_features, initial_feature_input_irrep.dim)
 
-        self.attention_heads = torch.nn.ModuleDict({i: Se3AttentionHead(num_attention_layers,
-                                                                        initial_feature_input_irrep,
-                                                                        feature_output_repr,
-                                                                        geometric_repr,
-                                                                        hidden_feature_repr,
-                                                                        key_and_query_irreps,
-                                                                        radial_network_hidden_units
-                                                                        ) for i in range(num_attention_heads)
+        self.attention_heads = torch.nn.ModuleDict({str(i): Se3AttentionHead(num_attention_layers,
+                                                                             initial_feature_input_irrep,
+                                                                             feature_output_repr,
+                                                                             geometric_repr,
+                                                                             hidden_feature_repr,
+                                                                             key_and_query_irreps,
+                                                                             radial_network_hidden_units
+                                                                             ) for i in range(num_attention_heads)
                                                     })
 
         concatenated_feature_irreps = (feature_output_repr * num_attention_heads).simplify()
@@ -135,7 +135,7 @@ class SE3EquivariantTransformerInverseRadiusSquared(Se3EquivariantTransformer):
 
     @staticmethod
     def get_relative_positions_and_distances(graph: tg.data.Data):
-        relative_positions, distances = super().get_relative_positions_and_distances(graph)
+        relative_positions, distances = Se3EquivariantTransformer.get_relative_positions_and_distances(graph)
         distances = distances.pow(-2)
 
         return relative_positions, distances

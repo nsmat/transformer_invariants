@@ -6,7 +6,7 @@ import torch_geometric as tg
 
 from models.tensor_field_networks import RadiallyParamaterisedTensorProduct
 from models.se3_attention_mechanisms import Se3AttentionMechanism
-from models.se3_transformer import Se3EquivariantTransformer
+from models.se3_transformer import Se3EquivariantTransformer, SE3EquivariantTransformerInverseRadiusSquared
 from unittest import TestCase
 
 
@@ -66,7 +66,7 @@ class TensorProductEquivarianceTest(TestCase):
 
 class AttentionMechanismEquivarianceTest(TestCase):
 
-    def test_equivariance_transformer(self):
+    def _factory_for_tests(self, transformer_class):
         feature_irreps = e3nn.o3.Irreps("5x0e+5x1e")
         geometric_irreps = e3nn.o3.Irreps("3x0e+3x1e")
         output_irreps = e3nn.o3.Irreps("10x0e+10x1e")
@@ -76,7 +76,7 @@ class AttentionMechanismEquivarianceTest(TestCase):
         graph = self.make_test_graph()
         number_of_output_features = 10
 
-        net = Se3EquivariantTransformer(
+        net = transformer_class(
             num_features=graph.node_features.shape[1],
             num_attention_layers=4,
             num_feature_channels=5,
@@ -113,7 +113,15 @@ class AttentionMechanismEquivarianceTest(TestCase):
 
         errors = torch.concat(errors)
 
-        self.assertAlmostEquals(errors.max().item(), 0)
+        self.assertAlmostEqual(errors.max().item(), 0)
+
+
+    def test_equivariance_vanilla_transformer(self):
+        self._factory_for_tests(Se3EquivariantTransformer)
+
+    def test_equivariance_inverse_distance_transformer(self):
+        self._factory_for_tests(SE3EquivariantTransformerInverseRadiusSquared)
+
 
     def test_equivariance_attention_mechanism(self):
         feature_irreps = e3nn.o3.Irreps("5x0e")
@@ -132,7 +140,7 @@ class AttentionMechanismEquivarianceTest(TestCase):
 
         errors = self.compute_all_errors_attention_mechanism(net, 100, graph)
 
-        self.assertAlmostEquals(errors.max().item(), 0)
+        self.assertAlmostEqual(errors.max().item(), 0)
 
     def compute_all_errors_attention_mechanism(self, net, n, graph):
 
