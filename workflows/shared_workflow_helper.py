@@ -5,16 +5,17 @@ import datetime as dt
 
 import pytorch_lightning as pl
 
+
 class MD17_Experiment:
-    def __init__(self, experiment_label: str, subclass, **  model_constructor_kwargs):
+    def __init__(self, experiment_label: str, subclass, **model_constructor_kwargs):
         self.experiment_label = experiment_label
 
         # Shared Configuration For Models
-        self.num_channels = 16,
-        self.l_max = 3,
-        self.num_features = 9,  # Derived from dataset
-        self.num_attention_layers = 4,
-        self.num_attention_heads = 4,
+        self.num_channels = 16
+        self.l_max = 3
+        self.num_features = 9  # Derived from dataset
+        self.num_attention_layers = 4
+        self.num_attention_heads = 4
         self.radial_network_hidden_units = 32
 
         self.model = subclass.construct_from_number_of_channels_and_lmax(
@@ -42,6 +43,7 @@ class MD17_Experiment:
         test_dataloader = tg.loader.DataLoader(data['test'], batch_size=self.batch_size)
 
         return train_dataloader, validation_dataloader, test_dataloader
+
     def train_and_evaluate_model(self):
         train_dataloader, validation_dataloader, test_dataloader = self.fetch_data()
 
@@ -52,4 +54,3 @@ class MD17_Experiment:
         logger = pl.loggers.CSVLogger(name=self.experiment_label, version=timestamp, save_dir='lightning_logs')
         trainer = pl.Trainer(max_epochs=1000, logger=logger)
         trainer.fit(self.task, train_dataloader, validation_dataloader)
-
