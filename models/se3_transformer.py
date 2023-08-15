@@ -57,7 +57,6 @@ class Se3EquivariantTransformer(torch.nn.Module):
         final_output_irreps = e3nn.o3.Irreps(f"{number_of_output_features}x0e")
         self.projection_head = e3nn.o3.Linear(concatenated_feature_irreps, final_output_irreps)
 
-
     @staticmethod
     def get_relative_positions_and_distances(graph: tg.data.Data):
         source_nodes = graph.edge_index[0, :]
@@ -71,9 +70,7 @@ class Se3EquivariantTransformer(torch.nn.Module):
         return relative_positions, distances
 
     def forward(self, graph: tg.data.Data):
-        relative_positions, distances = self.get_relative_positions_and_distances(graph)
-
-        edge_features = self.compute_edge_features(relative_positions)
+        edge_features, distances = self.get_relative_positions_and_distances(graph)
         edge_spherical_harmonics = e3nn.o3.spherical_harmonics(self.geometric_repr,
                                                                edge_features,
                                                                normalize=True
@@ -143,6 +140,7 @@ class SE3EquivariantTransformerInverseRadiusSquared(Se3EquivariantTransformer):
 
         return relative_positions, distances
 
+
 class SE3EquivariantTransformerMixedHeads(Se3EquivariantTransformer):
 
     def __init__(self, invariant_dictionary, *args, **kwargs):
@@ -150,27 +148,51 @@ class SE3EquivariantTransformerMixedHeads(Se3EquivariantTransformer):
         self.model_label = 'Mixed'
         self.invariant_dictionary = invariant_dictionary
 
-        for v in self.invariant_dictionary.values():
-            assert v in ['normal', 'inverse', 'periodic']
-
     def get_relative_positions_and_distances(self, graph: tg.data.Data):
         out_dict = {}
-        for head, type in self.invariant_dictionary.items():
-            if type == 'normal':
+        for head, feature_type in self.invariant_dictionary.items():
+            if feature_type == 'normal':
                 relative_positions, distances = Se3EquivariantTransformer.get_relative_positions_and_distances(graph)
-            elif type == 'inverse':
-                relative_positions, distances = SE3EquivariantTransformerInverseRadiusSquared.get_relative_positions_and_distances(graph)
-            elif type == 'cos':
+            elif feature_type == 'inverse':
+                relative_positions, distances = SE3EquivariantTransformerInverseRadiusSquared.get_relative_positions_and_distances(
+                    graph)
+            elif feature_type == 'periodic':
                 raise NotImplementedError()
             else:
                 raise ValueError()
-            out_dict[head] = {'relative_positions': relative_positions,
-                              'distances': distances}
+            out_dict[head] = {'edge_features': relative_positions,
+                              'distances': distances
+                              }
 
-
-
-        return
+        return out_dict
 
     def forward(self, graph: tg.data.Data):
+        geometric_information = self.get_relative_positions_and_distances(graph)
+        for head in geometric_information:
+            edge_features = geometric_information[head]['edge_features']
+            edge_spherical_harmonics = e3nn.o3.spherical_harmonics(self.geometric_repr,
+                                                                   edge_features,
+                                                                   normalize=True
+                                                                   )
+            geometric_information[head]['spherical_harmonics'] = edge_spherical_harmonics
 
+        embedded_node_features = self.initial_embedding(graph.node_features)
 
+        output_features = []
+        for head_name, attention_head in self.attention_heads.items():
+            spherical_harmonics = geometric_information[head_name]['spherical_harmonics'],
+            head_features = attention_head.forward(graph.edge_index,
+                                                   embedded_node_features,
+                                                   spherical_harmonics,
+                                                   geometric_information[head_name]['distances'])
+            output_features.append(head_features)
+
+        attention_output_features = torch.concatenate(output_features, dim=1)
+
+        # Pooling over all nodes for prediction
+        pooled_output = tg.nn.global_add_pool(attention_output_features, graph.batch)
+
+        output_features = self.projection_head(
+            pooled_output)  # projection head is an equivariant map onto type 0 vectors
+
+        return output_features
