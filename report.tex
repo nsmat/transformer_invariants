@@ -7,8 +7,8 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{pdfpages}
 
-\usepackage[style=chem-rsc]{biblatex}
-\addbibresource{report.bib}
+\usepackage[style=apa]{biblatex}
+\addbibresource{./report.bib}
 
 \usepackage{graphicx}
 \graphicspath{ {./report_images/} }
@@ -25,11 +25,11 @@
 
 \section{Introduction}
 
-Attention mechanisms are a neural network layer which parameterise the interactions between different inputs to a neural network by the features associated with those inputs. One of their benefits is that they make very few assumptions about the global domain structure, and so provide a recipe that generalises easily to new domains. As such, it has been successfully applied on problems raning from natural language processing (REF: Attention is all you need) to citation networks  and protein-protein interactions (REF: Graph attention networks). While this generality is useful, it is at odds with a competing objective of neural network design: to leverage prior knowledge of the domain structure for better performance.
+Attention mechanisms are a neural network layer which parameterise the interactions between different inputs to a neural network by the features associated with those inputs. One of their benefits is that they make very few assumptions about the global domain structure, and so provide a recipe that generalises easily to new domains. As such, it has been successfully applied on problems raning from natural language processing (\cite{vaswani2017attention}) to protein-protein interactions (\cite{velivckovic2017graph}) and machine vision tasks (\cite{vision_transformer}). While this generality is useful, it is at odds with a competing objective of neural network design: to leverage prior knowledge of the domain structure for better performance .
 
-For example, group-equivariant neural networks use knowledge of the symmetries of the input domain to reduce generalisation error (REF: Volumetric) and reduce sample complexity (REF: Pulmonary Cohen). This approach relies on constraining the forms of the layers in a given neural network so that they are 'equivariant' with respect to symmetry transformations, and has been extended to include equivariant attention mechanisms, which achieve competitive performance with standard convolutional group-equivariant networks on a number of benchmarks.
-
-These group-equivariant attention mechanisms are the focus of this paper. Specifically, we build on previous work that solved for the equivariance constraints in the case of the standard Euclidean group in 3 dimensions (SE(3)) (REF: Volumentric and RotoTranslationa). Within this framework, there are still a number of design choices available to the user, especially in how to paramaterise the group invariants. The focus of our paper will be on the impact of these design choices.
+For example, group-equivariant neural networks use knowledge of the symmetries of the input domain to reduce generalisation error (\cite{volumetric}) and reduce sample complexity (\cite{winkels2019pulmonary}). This approach relies on constraining the forms of the layers in a given neural network so that they are 'equivariant' with respect to symmetry transformations, and has been extended to include equivariant attention mechanisms, which achieve competitive performance with standard convolutional group-equivariant networks on a number of benchmarks.
+  
+These group-equivariant attention mechanisms are the focus of this paper. Specifically, we build on previous work that solved for the equivariance constraints in the case of the standard Euclidean group in 3 dimensions (SE(3)) (\cite*{volumetric} and \cite*{rototranslational}). Within this framework, there are still a number of design choices available to the user, especially in how to paramaterise the group invariants. The focus of our paper will be on the impact of these design choices.
 
 The work is divided into three sections: \begin{itemize}
 	\item A summary of the theory of group-equivariant attention mechanisms and a precise statement of the problem.
@@ -78,7 +78,7 @@ As stated above, we are interested in constructing equivariant maps between such
     \item Can we generalise this construction beyond the case where Aut$(X)$ are group actions?
 \end{itemize}
 
-The first of these two have been answered in the literature before, but I took a slightly different route to establishing them, using a construction of integral transforms from category theory. I will now describe this construction here and show how it can be used to answer the questions above. %todo references!
+The first of these two have been answered in the literature before, but I took a slightly different route to establishing them, using a construction of integral transforms from category theory. I will now describe this construction here and show how it can be used to answer the questions above. This section was heavily influenced by the discussion in \cite{integral_transforms}
 
 We are given two spaces: $X$ and $Y$. For each of these we may define a space of functions $F(X)$ and $F(Y)$, and our goal is to construct a map $K: F(X) -> F(Y)$
 
@@ -179,11 +179,11 @@ To summarise, each component of our attention mechanism is computed in the follo
 
 In each of the following experiments, we used a multi-headed, multi-layer transformer architecure. Derived equivariant features were calculated separately in each head, then concatenated to form the final latent representation of the graph. Finally, the equivariant features were mapped to a set of type-0 features, creating a transformation invariant representation of the molecule.
 
-We used 4 attention heads, each with 4 layers. Each layer used 8 channels of type-0, type-1 and type-3 features, following the recommendation given in (REF: Roto-translational). Internally, the tensor-product weight functions are paramaterised as multi-layer perceptrons with 32 hidden units. These are the only source of non-linearity in the network, and since distances are naturally SE(3) invariant, all layers remain equivariant when using standard activation functions.
+We used 4 attention heads, each with 4 layers. Each layer used 8 channels of type-0, type-1 and type-3 features, following the recommendation given in (\cite{rototranslational}). Internally, the tensor-product weight functions are paramaterised as multi-layer perceptrons with 32 hidden units. These are the only source of non-linearity in the network, and since distances are naturally SE(3) invariant, all layers remain equivariant when using standard activation functions.
 
 Rather than use a fully-connected graph, which is typical of transformer architecures, the input graphs were derived during pre-processing by connecting nodes that were within 2 angstroms of each other. This reduces inference time in each pass of the neural network, allowing for a larger number of epochs during training.  
 
-All tensor products and equivariant linear maps were implemented using the e3nn library (REF).
+All tensor products and equivariant linear maps were implemented using the e3nn library (\cite{geiger2022e3nn}).
 
 All models were trained for 12 hours on an Nvidia A100 GPU using a batch size of 64.
 
